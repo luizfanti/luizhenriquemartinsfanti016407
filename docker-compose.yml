@@ -1,0 +1,105 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: musicapi-postgres
+    environment:
+      POSTGRES_DB: musicapi
+      POSTGRES_USER: musicapi
+      POSTGRES_PASSWORD: musicapi
+    ports:
+      - "5432:5432"
+    volumes:
+      - musicapi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U musicapi -d musicapi"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    container_name: musicapi-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - musicapi_minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: musicapi-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb -p local/musicapi || true &&
+      echo 'MinIO bucket ensured: musicapi' &&
+      exit 0;
+      "
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: musicapi-api
+    environment:
+      APP_PORT: "8080"
+
+      DB_URL: jdbc:postgresql://postgres:5432/musicapi
+      DB_USERNAME: musicapi
+      DB_PASSWORD: musicapi
+
+      JWT_ISSUER: musicapi
+      JWT_SECRET: CHANGE_ME_SUPER_SECRET_64_CHARS_MIN_CHANGE_ME_SUPER_SECRET_64
+      JWT_ACCESS_EXP_MINUTES: "5"
+      JWT_REFRESH_EXP_DAYS: "7"
+
+      CORS_ALLOWLIST_ORIGINS: http://localhost:3000,http://localhost:8080
+      SERVICE_DOMAIN: localhost
+
+      RATE_LIMIT_RPM: "10"
+
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: musicapi
+      MINIO_PRESIGNED_EXP_MINUTES: "30"
+
+      REGIONAIS_BASE_URL: https://integrador-argus-api.geia.vip
+      REGIONAIS_PATH: /v1/regionais
+      REGIONAIS_TIMEOUT_MS: "5000"
+
+      ACTUATOR_SHOW_DETAILS: never
+
+      LOG_LEVEL_ROOT: INFO
+      LOG_LEVEL_SECURITY: INFO
+      LOG_LEVEL_HIBERNATE_SQL: WARN
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  musicapi_pgdata:
+  musicapi_minio:
