@@ -1,0 +1,73 @@
+# =========================
+# Maven
+# =========================
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# =========================
+# Java
+# =========================
+*.class
+*.log
+
+# =========================
+# Spring Boot
+# =========================
+spring.log
+
+# =========================
+# IDEs
+# =========================
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+.settings/
+
+# Eclipse
+.project
+.classpath
+
+# =========================
+# OS / Windows
+# =========================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# =========================
+# Docker
+# =========================
+*.env
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# Test coverage / reports
+# =========================
+coverage/
+*.exec
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.swp
+*.bak
