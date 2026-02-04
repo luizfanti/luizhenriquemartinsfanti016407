@@ -42,20 +42,16 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/swagger-ui.html", "/swagger-ui/**").permitAll()
-                .requestMatchers("/api/v1/docs/**").permitAll()
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers("/actuator/**").permitAll()
+            .requestMatchers("/swagger-ui.html", "/swagger-ui/**").permitAll()
+            .requestMatchers("/api/v1/docs/**").permitAll()
+            .requestMatchers("/ws/**").permitAll()
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers("/api/v1/auth/**").permitAll()
+            .requestMatchers("/api/v1/**").authenticated()
+            .anyRequest().permitAll()
+        )
 
-                // Auth aberto
-                .requestMatchers("/api/v1/auth/**").permitAll()
-
-                // Todo resto versionado exige JWT
-                .requestMatchers("/api/v1/**").authenticated()
-
-                // Demais rotas (se existirem) podem ficar abertas ou fechadas
-                .anyRequest().permitAll()
-            )
 
             .httpBasic(basic -> basic.disable())
             .formLogin(form -> form.disable());
