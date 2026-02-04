@@ -3,7 +3,7 @@ INSERT INTO artist (name, type) VALUES
 ('Serj Tankian', 'SINGER'),
 ('Mike Shinoda', 'SINGER'),
 ('Michel Teló', 'SINGER'),
-('Guns N’ Roses', 'BAND');
+('Guns N'' Roses', 'BAND');
 
 -- ÁLBUNS
 INSERT INTO album (title) VALUES
@@ -14,7 +14,7 @@ INSERT INTO album (title) VALUES
 ('The Rising Tied'),
 ('Post Traumatic'),
 ('Post Traumatic EP'),
-('Where’d You Go'),
+('Where''d You Go'),
 
 ('Bem Sertanejo'),
 ('Bem Sertanejo - O Show (Ao Vivo)'),
@@ -24,28 +24,23 @@ INSERT INTO album (title) VALUES
 ('Use Your Illusion II'),
 ('Greatest Hits');
 
--- RELACIONAMENTOS
+-- RELACIONAMENTOS (N:N) sem depender de IDs fixos
 -- Serj Tankian
-INSERT INTO artist_album VALUES
-(1, 1),
-(1, 2),
-(1, 3);
+INSERT INTO artist_album (artist_id, album_id)
+SELECT a.id, al.id FROM artist a, album al
+WHERE a.name = 'Serj Tankian' AND al.title IN ('Harakiri','Black Blooms','The Rough Dog');
 
 -- Mike Shinoda
-INSERT INTO artist_album VALUES
-(2, 4),
-(2, 5),
-(2, 6),
-(2, 7);
+INSERT INTO artist_album (artist_id, album_id)
+SELECT a.id, al.id FROM artist a, album al
+WHERE a.name = 'Mike Shinoda' AND al.title IN ('The Rising Tied','Post Traumatic','Post Traumatic EP','Where''d You Go');
 
 -- Michel Teló
-INSERT INTO artist_album VALUES
-(3, 8),
-(3, 9),
-(3, 10);
+INSERT INTO artist_album (artist_id, album_id)
+SELECT a.id, al.id FROM artist a, album al
+WHERE a.name = 'Michel Teló' AND al.title IN ('Bem Sertanejo','Bem Sertanejo - O Show (Ao Vivo)','Bem Sertanejo - (1ª Temporada) - EP');
 
--- Guns N’ Roses
-INSERT INTO artist_album VALUES
-(4, 11),
-(4, 12),
-(4, 13);
+-- Guns N' Roses
+INSERT INTO artist_album (artist_id, album_id)
+SELECT a.id, al.id FROM artist a, album al
+WHERE a.name = 'Guns N'' Roses' AND al.title IN ('Use Your Illusion I','Use Your Illusion II','Greatest Hits');
