@@ -16,4 +16,12 @@ public class ApiExceptionHandler {
                 "message", ex.getMessage()
         ));
     }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Map<String, Object>> notFound(NotFoundException ex) {
+        return ResponseEntity.status(404).body(Map.of(
+                "error", "not_found",
+                "message", ex.getMessage()
+        ));
+    }
 }
