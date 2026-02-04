@@ -91,7 +91,7 @@ management:
     health:
       probes:
         enabled: true
-      show-details: ${ACTUATOR_SHOW_DETAILS:never}
+      show-details: never
   health:
     livenessstate:
       enabled: true
