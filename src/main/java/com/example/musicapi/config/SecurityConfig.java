@@ -2,9 +2,8 @@ package com.example.musicapi.config;
 
 import com.example.musicapi.config.properties.CorsProperties;
 import com.example.musicapi.config.properties.JwtProperties;
-import com.example.musicapi.security.DomainAllowlistFilter;
-import com.example.musicapi.security.JwtAuthFilter;
-import com.example.musicapi.security.JwtService;
+import com.example.musicapi.config.properties.RateLimitProperties;
+import com.example.musicapi.security.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties({CorsProperties.class, JwtProperties.class})
+@EnableConfigurationProperties({CorsProperties.class, JwtProperties.class, RateLimitProperties.class})
 public class SecurityConfig {
 
     @Bean
@@ -27,14 +26,22 @@ public class SecurityConfig {
     }
 
     @Bean
+    public RateLimitService rateLimitService() {
+        return new RateLimitService();
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             CorsProperties corsProperties,
-            JwtService jwtService
+            JwtService jwtService,
+            RateLimitProperties rateLimitProperties,
+            RateLimitService rateLimitService
     ) throws Exception {
 
         DomainAllowlistFilter domainAllowlistFilter = new DomainAllowlistFilter(corsProperties);
         JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtService);
+        RateLimitFilter rateLimitFilter = new RateLimitFilter(rateLimitProperties, rateLimitService);
 
         http
             .csrf(csrf -> csrf.disable())
@@ -42,22 +49,26 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
             .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/actuator/**").permitAll()
-            .requestMatchers("/swagger-ui.html", "/swagger-ui/**").permitAll()
-            .requestMatchers("/api/v1/docs/**").permitAll()
-            .requestMatchers("/ws/**").permitAll()
-            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .requestMatchers("/api/v1/auth/**").permitAll()
-            .requestMatchers("/api/v1/**").authenticated()
-            .anyRequest().permitAll()
-        )
+                .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**").permitAll()
+                .requestMatchers("/api/v1/docs/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                .requestMatchers("/api/v1/auth/**").permitAll()
 
+                .requestMatchers("/api/v1/**").authenticated()
+                .anyRequest().permitAll()
+            )
             .httpBasic(basic -> basic.disable())
             .formLogin(form -> form.disable());
 
+        // Domínio primeiro
         http.addFilterBefore(domainAllowlistFilter, UsernamePasswordAuthenticationFilter.class);
+        // JWT antes do rate limit (para setar principal)
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        // Rate limit depois do JWT
+        http.addFilterAfter(rateLimitFilter, JwtAuthFilter.class);
 
         return http.build();
     }
