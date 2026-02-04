@@ -1,128 +1,131 @@
 package com.example.musicapi.service;
 
-import com.example.musicapi.config.properties.MinioProperties;
-import com.example.musicapi.dto.AlbumImageResponse;
+import com.example.musicapi.dto.AlbumCreateRequest;
+import com.example.musicapi.dto.AlbumResponse;
+import com.example.musicapi.dto.ArtistResponse;
 import com.example.musicapi.exception.NotFoundException;
 import com.example.musicapi.model.AlbumEntity;
-import com.example.musicapi.model.AlbumImageEntity;
-import com.example.musicapi.repository.AlbumImageRepository;
+import com.example.musicapi.model.ArtistEntity;
+import com.example.musicapi.model.ArtistType;
 import com.example.musicapi.repository.AlbumRepository;
+import com.example.musicapi.repository.ArtistRepository;
+
+import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
-import java.io.IOException;
-import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class AlbumImageService {
 
-    private final MinioProperties props;
-    private final S3Client s3Client;
-    private final S3Presigner presigner;
-
     private final AlbumRepository albumRepository;
-    private final AlbumImageRepository albumImageRepository;
-
-    private static final Duration PRESIGNED_EXPIRATION = Duration.ofMinutes(30);
+    private final ArtistRepository artistRepository;
+    private final AlbumNotificationService albumNotificationService;
 
     public AlbumImageService(
-            MinioProperties props,
-            S3Client s3Client,
-            S3Presigner presigner,
             AlbumRepository albumRepository,
-            AlbumImageRepository albumImageRepository
+            ArtistRepository artistRepository,
+            AlbumNotificationService albumNotificationService
     ) {
-        this.props = props;
-        this.s3Client = s3Client;
-        this.presigner = presigner;
         this.albumRepository = albumRepository;
-        this.albumImageRepository = albumImageRepository;
+        this.artistRepository = artistRepository;
+        this.albumNotificationService = albumNotificationService;
     }
 
-    public List<AlbumImageResponse> upload(Long albumId, List<MultipartFile> files) {
-        AlbumEntity album = albumRepository.findById(albumId)
-                .orElseThrow(() -> new NotFoundException("Album not found: " + albumId));
+    public AlbumResponse create(AlbumCreateRequest req) {
+        Set<ArtistEntity> artists = loadArtists(req.getArtistIds());
 
-        if (files == null || files.isEmpty()) {
-            throw new IllegalArgumentException("files is required");
+        AlbumEntity entity = new AlbumEntity(req.getTitle());
+        entity.setArtists(artists);
+
+        AlbumEntity saved = albumRepository.save(entity);
+        AlbumResponse response = toResponse(saved);
+
+        // Notificar WebSocket (novo álbum cadastrado)
+        // createdAt vem da entidade (instant), mas garantimos fallback
+        Instant createdAt = saved.getCreatedAt() != null ? saved.getCreatedAt() : Instant.now();
+        albumNotificationService.notifyAlbumCreated(response, createdAt);
+
+        return response;
+    }
+
+    public AlbumResponse update(Long id, AlbumCreateRequest req) {
+        AlbumEntity entity = albumRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Album not found: " + id));
+
+        entity.setTitle(req.getTitle());
+        entity.setArtists(loadArtists(req.getArtistIds()));
+
+        AlbumEntity saved = albumRepository.save(entity);
+        return toResponse(saved);
+    }
+
+    public AlbumResponse getById(Long id) {
+        AlbumEntity entity = albumRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Album not found: " + id));
+        return toResponse(entity);
+    }
+
+    public Page<AlbumResponse> listPaged(Integer page, Integer size) {
+        int p = page == null ? 0 : Math.max(page, 0);
+        int s = size == null ? 10 : Math.min(Math.max(size, 1), 50);
+
+        PageRequest pr = PageRequest.of(p, s, Sort.by(Sort.Direction.ASC, "title"));
+        return albumRepository.findAll(pr).map(this::toResponse);
+    }
+
+    public Page<AlbumResponse> listByArtistType(String type, Integer page, Integer size) {
+        ArtistType artistType = parseArtistType(type);
+
+        int p = page == null ? 0 : Math.max(page, 0);
+        int s = size == null ? 10 : Math.min(Math.max(size, 1), 50);
+
+        PageRequest pr = PageRequest.of(p, s, Sort.by(Sort.Direction.ASC, "title"));
+        return albumRepository.findByArtistType(artistType, pr).map(this::toResponse);
+    }
+
+    private Set<ArtistEntity> loadArtists(Set<Long> artistIds) {
+        if (artistIds == null || artistIds.isEmpty()) {
+            throw new IllegalArgumentException("artistIds is required");
         }
 
-        return files.stream().map(file -> uploadOne(album.getId(), file)).toList();
+        return artistIds.stream()
+                .map(id -> artistRepository.findById(id)
+                        .orElseThrow(() -> new NotFoundException("Artist not found: " + id)))
+                .collect(Collectors.toSet());
     }
 
-    public List<AlbumImageResponse> list(Long albumId) {
-        // valida album existe
-        albumRepository.findById(albumId)
-                .orElseThrow(() -> new NotFoundException("Album not found: " + albumId));
-
-        return albumImageRepository.findByAlbumIdOrderByCreatedAtDesc(albumId).stream()
-                .map(img -> new AlbumImageResponse(
-                        img.getId(),
-                        presignGetUrl(img.getObjectKey()),
-                        img.getContentType(),
-                        img.getSize(),
-                        img.getCreatedAt()
-                ))
-                .toList();
-    }
-
-    private AlbumImageResponse uploadOne(Long albumId, MultipartFile file) {
-        String objectKey = "albums/" + albumId + "/" + UUID.randomUUID() + "-" + safeName(file.getOriginalFilename());
-
-        try {
-            PutObjectRequest put = PutObjectRequest.builder()
-                    .bucket(props.getBucket())
-                    .key(objectKey)
-                    .contentType(file.getContentType())
-                    .build();
-
-            s3Client.putObject(put, RequestBody.fromBytes(file.getBytes()));
-
-            AlbumImageEntity saved = albumImageRepository.save(
-                    new AlbumImageEntity(albumId, objectKey, file.getContentType(), file.getSize())
-            );
-
-            return new AlbumImageResponse(
-                    saved.getId(),
-                    presignGetUrl(objectKey),
-                    saved.getContentType(),
-                    saved.getSize(),
-                    saved.getCreatedAt()
-            );
-
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Failed to read file: " + ex.getMessage());
-        } catch (Exception ex) {
-            throw new IllegalArgumentException("Failed to upload to storage: " + ex.getMessage());
+    private ArtistType parseArtistType(String type) {
+        if (type == null) {
+            throw new IllegalArgumentException("type is required: singer|band");
         }
+        if ("singer".equalsIgnoreCase(type)) return ArtistType.SINGER;
+        if ("band".equalsIgnoreCase(type)) return ArtistType.BAND;
+        throw new IllegalArgumentException("invalid type: " + type + " (use singer|band)");
     }
 
-    private String presignGetUrl(String objectKey) {
-        GetObjectRequest getReq = GetObjectRequest.builder()
-                .bucket(props.getBucket())
-                .key(objectKey)
-                .build();
+    private AlbumResponse toResponse(AlbumEntity e) {
+        Set<ArtistResponse> artists = e.getArtists().stream()
+                .map(ar -> new ArtistResponse(ar.getId(), ar.getName(), ar.getType()))
+                .collect(Collectors.toSet());
 
-        GetObjectPresignRequest presignReq = GetObjectPresignRequest.builder()
-                .signatureDuration(PRESIGNED_EXPIRATION)
-                .getObjectRequest(getReq)
-                .build();
-
-        PresignedGetObjectRequest presigned = presigner.presignGetObject(presignReq);
-        return presigned.url().toString();
+        return new AlbumResponse(e.getId(), e.getTitle(), artists);
     }
 
-    private String safeName(String name) {
-        if (name == null || name.isBlank()) return "file";
-        return name.replaceAll("[^a-zA-Z0-9._-]", "_");
+    public @Nullable Object upload(Long albumId, List<MultipartFile> files) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'upload'");
+    }
+
+    public @Nullable Object list(Long albumId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'list'");
     }
 }

@@ -2,6 +2,8 @@ package com.example.musicapi.controller;
 
 import com.example.musicapi.dto.AlbumImageResponse;
 import com.example.musicapi.service.AlbumImageService;
+
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,7 +25,7 @@ public class AlbumImageController {
      * Form-data: files (multi)
      */
     @PostMapping(consumes = "multipart/form-data")
-    public ResponseEntity<List<AlbumImageResponse>> upload(
+    public ResponseEntity<@Nullable Object> upload(
             @PathVariable Long albumId,
             @RequestPart("files") List<MultipartFile> files
     ) {
@@ -35,6 +37,6 @@ public class AlbumImageController {
      */
     @GetMapping
     public ResponseEntity<List<AlbumImageResponse>> list(@PathVariable Long albumId) {
-        return ResponseEntity.ok(albumImageService.list(albumId));
+        return ResponseEntity.ok((List<AlbumImageResponse>) albumImageService.list(albumId));
     }
 }
