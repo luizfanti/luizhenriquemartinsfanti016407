@@ -82,5 +82,7 @@ A documentação completa dos endpoints (POST, PUT, GET, Upload, Sync) está dis
 
 ---
 **Candidato**: Luiz Henrique Martins Fanti
+
 **Vaga**: Analista de TI - Engenheiro da Computação/SÊNIOR
+
 **Data**: 05/02/2026
