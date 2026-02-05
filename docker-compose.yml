@@ -1,13 +1,13 @@
 services:
   postgres:
     image: postgres:16
-    container_name: musicapi-postgres
+    # container_name: musicapi-postgres
     environment:
       POSTGRES_DB: musicapi
       POSTGRES_USER: musicapi
       POSTGRES_PASSWORD: musicapi
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Alterado de 5432:5432 para 5433:5432
     volumes:
       - musicapi_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,13 +18,13 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: musicapi-minio
+    # container_name: musicapi-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"
+      - "9010:9000"  # Alterado de 9000:9000 para 9010:9000
       - "9001:9001"
     volumes:
       - musicapi_minio:/data
@@ -34,9 +34,10 @@ services:
       timeout: 3s
       retries: 20
 
+
   minio-init:
     image: minio/mc:latest
-    container_name: musicapi-minio-init
+     # container_name: musicapi-minio-initt
     depends_on:
       minio:
         condition: service_healthy
@@ -52,13 +53,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: musicapi-api
+    # container_name: musicapi-api
+    restart: "on-failure:3"
     environment:
       APP_PORT: "8080"
 
-      DB_URL: jdbc:postgresql://postgres:5432/musicapi
-      DB_USERNAME: musicapi
-      DB_PASSWORD: musicapi
+      # ✅ Datasource padrão do Spring Boot
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/musicapi
+      SPRING_DATASOURCE_USERNAME: musicapi
+      SPRING_DATASOURCE_PASSWORD: musicapi
+
+      # ✅ Flyway - forçar execução e log
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_LOCATIONS: "classpath:db/migration"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      LOGGING_LEVEL_org_flywaydb: "DEBUG"
 
       JWT_ISSUER: musicapi
       JWT_SECRET: CHANGE_ME_SUPER_SECRET_64_CHARS_MIN_CHANGE_ME_SUPER_SECRET_64
@@ -75,6 +84,7 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: musicapi
       MINIO_PRESIGNED_EXP_MINUTES: "30"
+      MINIO_PUBLIC_ENDPOINT: http://localhost:9010
 
       REGIONAIS_BASE_URL: https://integrador-argus-api.geia.vip
       REGIONAIS_PATH: /v1/regionais
@@ -85,6 +95,7 @@ services:
       LOG_LEVEL_ROOT: INFO
       LOG_LEVEL_SECURITY: INFO
       LOG_LEVEL_HIBERNATE_SQL: WARN
+
     ports:
       - "8080:8080"
     depends_on:

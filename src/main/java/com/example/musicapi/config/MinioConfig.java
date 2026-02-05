@@ -1,4 +1,5 @@
 package com.example.musicapi.config;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.config.properties.MinioProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -35,9 +36,11 @@ public class MinioConfig {
     public S3Presigner s3Presigner(MinioProperties props) {
         AwsBasicCredentials creds = AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey());
 
+        String endpoint = props.getPublicEndpoint() != null ? props.getPublicEndpoint() : props.getEndpoint();
+
         return S3Presigner.builder()
                 .credentialsProvider(StaticCredentialsProvider.create(creds))
-                .endpointOverride(URI.create(props.getEndpoint()))
+                .endpointOverride(URI.create(endpoint))
                 .region(Region.US_EAST_1)
                 .build();
     }

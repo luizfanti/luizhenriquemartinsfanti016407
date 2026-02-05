@@ -1,4 +1,5 @@
 package com.example.musicapi.controller;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.dto.AlbumImageResponse;
 import com.example.musicapi.service.AlbumImageService;

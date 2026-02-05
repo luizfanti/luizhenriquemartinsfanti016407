@@ -1,4 +1,5 @@
 package com.example.musicapi.config.properties;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

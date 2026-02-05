@@ -1,10 +1,11 @@
 package com.example.musicapi.security;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.config.properties.CorsProperties;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -53,9 +54,7 @@ public class DomainAllowlistFilter extends OncePerRequestFilter {
         if (!allowed) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json");
-            response.getWriter().write("""
-                    {"error":"forbidden","message":"Request blocked: origin/host not allowed for this service domain."}
-                    """);
+            response.getWriter().write("{\"error\":\"forbidden\",\"message\":\"Request blocked: origin/host not allowed for this service domain.\"}");
             return;
         }
 

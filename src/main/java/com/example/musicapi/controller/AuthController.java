@@ -1,10 +1,11 @@
 package com.example.musicapi.controller;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.dto.AuthLoginRequest;
 import com.example.musicapi.dto.AuthRefreshRequest;
 import com.example.musicapi.dto.AuthResponse;
 import com.example.musicapi.service.AuthService;
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

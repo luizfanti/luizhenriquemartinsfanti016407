@@ -1,4 +1,5 @@
 package com.example.musicapi.dto;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.model.ArtistType;
 

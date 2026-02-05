@@ -1,6 +1,7 @@
 package com.example.musicapi.model;
+import java.util.stream.Collectors;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
 
 import java.time.Instant;
 

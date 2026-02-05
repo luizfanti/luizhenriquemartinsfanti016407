@@ -1,9 +1,10 @@
 package com.example.musicapi.controller;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.dto.ArtistCreateRequest;
 import com.example.musicapi.dto.ArtistResponse;
 import com.example.musicapi.service.ArtistService;
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

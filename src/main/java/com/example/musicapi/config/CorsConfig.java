@@ -1,4 +1,5 @@
 package com.example.musicapi.config;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.config.properties.CorsProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -52,6 +53,6 @@ public class CorsConfig {
         return origins.stream()
                 .map(String::trim)
                 .filter(s -> !s.isBlank())
-                .toList();
+                .collect(Collectors.toList());
     }
 }

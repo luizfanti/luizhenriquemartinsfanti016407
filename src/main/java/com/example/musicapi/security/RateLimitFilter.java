@@ -1,10 +1,11 @@
 package com.example.musicapi.security;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.config.properties.RateLimitProperties;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -58,9 +59,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (!allowed) {
             response.setStatus(429);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().write("""
-                    {"error":"too_many_requests","message":"Rate limit exceeded. Max 10 requests per minute per user."}
-                    """);
+            response.getWriter().write("{\"error\":\"too_many_requests\",\"message\":\"Rate limit exceeded. Max 10 requests per minute per user.\"}");
             return;
         }
 

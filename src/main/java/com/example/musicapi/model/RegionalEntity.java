@@ -1,14 +1,21 @@
 package com.example.musicapi.model;
+import java.util.stream.Collectors;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "regional")
 public class RegionalEntity {
 
     @Id
-    @Column(name = "id")
-    private Integer id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "pk")
+    private Long pk;
+
+    @Column(name = "id", nullable = false)
+    private Integer externalId;
 
     @Column(name = "nome", nullable = false, length = 200)
     private String nome;
@@ -16,35 +23,27 @@ public class RegionalEntity {
     @Column(name = "ativo", nullable = false)
     private Boolean ativo = true;
 
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt = Instant.now();
+
     public RegionalEntity() {}
 
-    public RegionalEntity(Integer id, String nome, Boolean ativo) {
-        this.id = id;
+    public RegionalEntity(Integer externalId, String nome, Boolean ativo) {
+        this.externalId = externalId;
         this.nome = nome;
         this.ativo = ativo;
+        this.createdAt = Instant.now();
     }
 
-    public Integer getId() {
-        return id;
-    }
+    public Long getPk() { return pk; }
+    public Integer getExternalId() { return externalId; }
+    public String getNome() { return nome; }
+    public Boolean getAtivo() { return ativo; }
+    public Instant getCreatedAt() { return createdAt; }
 
-    public String getNome() {
-        return nome;
-    }
-
-    public Boolean getAtivo() {
-        return ativo;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public void setAtivo(Boolean ativo) {
-        this.ativo = ativo;
-    }
+    public void setPk(Long pk) { this.pk = pk; }
+    public void setExternalId(Integer externalId) { this.externalId = externalId; }
+    public void setNome(String nome) { this.nome = nome; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

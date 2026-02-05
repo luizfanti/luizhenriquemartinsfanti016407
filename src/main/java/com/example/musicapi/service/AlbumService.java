@@ -1,4 +1,5 @@
 package com.example.musicapi.service;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.dto.AlbumCreateRequest;
 import com.example.musicapi.dto.AlbumResponse;
@@ -14,18 +15,24 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class AlbumService {
 
     private final AlbumRepository albumRepository;
     private final ArtistRepository artistRepository;
+    private final AlbumNotificationService albumNotificationService;
 
-    public AlbumService(AlbumRepository albumRepository, ArtistRepository artistRepository) {
+    public AlbumService(
+            AlbumRepository albumRepository,
+            ArtistRepository artistRepository,
+            AlbumNotificationService albumNotificationService
+    ) {
         this.albumRepository = albumRepository;
         this.artistRepository = artistRepository;
+        this.albumNotificationService = albumNotificationService;
     }
 
     public AlbumResponse create(AlbumCreateRequest req) {
@@ -34,7 +41,14 @@ public class AlbumService {
         entity.setArtists(artists);
 
         AlbumEntity saved = albumRepository.save(entity);
-        return toResponse(saved);
+        AlbumResponse response = toResponse(saved);
+
+        albumNotificationService.notifyAlbumCreated(
+                response,
+                saved.getCreatedAt() != null ? saved.getCreatedAt() : Instant.now()
+        );
+
+        return response;
     }
 
     public AlbumResponse update(Long id, AlbumCreateRequest req) {
@@ -77,12 +91,10 @@ public class AlbumService {
             throw new IllegalArgumentException("artistIds is required");
         }
 
-        Set<ArtistEntity> artists = artistIds.stream()
+        return artistIds.stream()
                 .map(id -> artistRepository.findById(id)
                         .orElseThrow(() -> new NotFoundException("Artist not found: " + id)))
                 .collect(Collectors.toSet());
-
-        return artists;
     }
 
     private ArtistType parseArtistType(String type) {
@@ -102,4 +114,3 @@ public class AlbumService {
         return new AlbumResponse(e.getId(), e.getTitle(), artists);
     }
 }
-

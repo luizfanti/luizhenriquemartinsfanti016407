@@ -1,8 +1,9 @@
 package com.example.musicapi.dto;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.model.ArtistType;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 public class ArtistCreateRequest {
 

@@ -1,4 +1,5 @@
 package com.example.musicapi.service;
+import java.util.stream.Collectors;
 
 import com.example.musicapi.dto.ArtistCreateRequest;
 import com.example.musicapi.dto.ArtistResponse;
@@ -47,7 +48,7 @@ public class ArtistService {
                 : Sort.by(Sort.Direction.ASC, "name");
 
         List<ArtistEntity> list = artistRepository.findByNameContainingIgnoreCase(name == null ? "" : name, sort);
-        return list.stream().map(this::toResponse).toList();
+        return list.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     private ArtistResponse toResponse(ArtistEntity e) {

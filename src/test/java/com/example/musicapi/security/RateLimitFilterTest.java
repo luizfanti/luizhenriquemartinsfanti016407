@@ -1,7 +1,7 @@
 package com.example.musicapi.security;
 
 import com.example.musicapi.config.properties.RateLimitProperties;
-import jakarta.servlet.FilterChain;
+import javax.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
